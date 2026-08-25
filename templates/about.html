@@ -4,123 +4,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>TaskHub</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@700;800&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='about.css') }}">
 </head>
 
-<body class="bg-light">
+<body>
 
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
+    <header class="th-header">
+        <span class="th-brand">Task<span class="mark">Hub</span></span>
 
-            <h2 class="logo">
-                <span>Task</span>Hub
-            </h2>
+        <nav class="th-nav">
+            <a href="/tasks">View Tasks</a>
+            <a href="{{ url_for('logout') }}" class="logout">Logout</a>
+        </nav>
+    </header>
 
-            <button class="navbar-toggler"
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#navbarNav">
+    <div class="about-wrap">
 
-                <span class="navbar-toggler-icon"></span>
+        <div class="th-card about-card">
 
-            </button>
+            <h1>About TaskHub</h1>
+            <p class="lead">A simple and efficient task management system built with Flask.</p>
 
-            <div class="collapse navbar-collapse" id="navbarNav">
+            <hr>
 
-                <ul class="navbar-nav ms-auto">
+            <p>
+                This task management system is a web-based application designed
+                to help users organize, track, and manage their daily tasks
+                efficiently.
+            </p>
 
-                    <li class="nav-item">
-                        <a class="nav-link text-danger" href="{{ url_for('logout') }}">
-                            Logout
-                        </a>
-                    </li>
+            <p>
+                Users can create, view, update, and delete tasks, assign
+                priorities, set due dates, and organize tasks into categories
+                for better planning.
+            </p>
 
-                </ul>
+            <p>
+                The application uses <strong>Flask</strong> for the backend,
+                <strong>SQLite</strong> for the database, and
+                <strong>HTML</strong>, <strong>CSS</strong>, and
+                <strong>JavaScript</strong> for the frontend.
+            </p>
 
-            </div>
+            <p>
+                This project was developed as a <strong>COS Group 5</strong>
+                assignment to demonstrate frontend development, backend
+                routing, user authentication, database management, REST APIs,
+                and version control with GitHub.
+            </p>
 
-        </div>
-    </nav>
-
-    <!-- Main Content -->
-    <div class="container rounded -5 py-5">
-
-        <div class="row justify-content-center">
-
-            <div class="col-lg-9">
-
-                <div class="card shadow">
-
-                    <div class="card-body p-5">
-
-                        <h1 class="text-center mb-4">
-                            About TaskHub
-                        </h1>
-
-                        <p class="lead text-center">
-                            A simple and efficient task management system built with Flask.
-                        </p>
-
-                        <hr>
-
-                        <p>
-                            This task management system is a web-based application designed
-                            to help users organize, track, and manage their daily tasks
-                            efficiently.
-                        </p>
-
-                        <p>
-                            Users can create, view, update, and delete tasks, assign
-                            priorities, set due dates, and organize tasks into categories
-                            for better planning.
-                        </p>
-
-                        <p>
-                            The application uses
-                            <strong>Flask</strong> for the backend,
-                            <strong>SQLite</strong> for the database, and
-                            <strong>HTML</strong>,
-                            <strong>CSS</strong>,
-                            <strong>Bootstrap</strong>, and
-                            <strong>JavaScript</strong> for the frontend.
-                        </p>
-
-                        <p>
-                            This project was developed as a
-                            <strong>COS Group 5</strong> assignment to demonstrate
-                            frontend development, backend routing, user authentication,
-                            database management, REST APIs, and version control with GitHub.
-                        </p>
-
-                        <div class="text-center mt-4">
-
-                            <a href="/tasks" class="btn btn-primary me-2">
-                                View Tasks
-                            </a>
-
-                            <a href="/create" class="btn btn-success">
-                                Create Task
-                            </a>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
+            <div class="about-actions">
+                <a href="/tasks" class="btn btn-primary">View Tasks</a>
+                <a href="/create" class="btn btn-ghost">Create Task</a>
             </div>
 
         </div>
 
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 

@@ -1,22 +1,58 @@
-body.bg-light{
-     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-.logo {
-    font-family: 'Sora', sans-serif;
-    font-size: 2rem;
-    font-weight: 800;
-    letter-spacing: -1px;
-    color: white;
-    text-decoration: none;
+/* ===== About page ===== */
+
+.about-wrap {
+  max-width: 720px;
+  margin: 60px auto;
+  padding: 0 20px;
 }
 
-.logo span {
-    color: #B8E1FF;
-}
-.logo {
-    transition: transform .2s ease;
+.about-card {
+  padding: 48px 44px;
 }
 
-.logo:hover {
-    transform: scale(1.03);
+.about-card h1 {
+  font-size: 2.2rem;
+  color: var(--paper);
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.about-card .lead {
+  font-family: var(--font-body);
+  text-align: center;
+  color: var(--accent-amber);
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 26px;
+}
+
+.about-card hr {
+  border: none;
+  border-top: 1px solid var(--ink-line);
+  margin-bottom: 26px;
+}
+
+.about-card p {
+  font-family: var(--font-body);
+  color: var(--ink-muted);
+  line-height: 1.8;
+  font-size: 0.98rem;
+  margin-bottom: 18px;
+}
+
+.about-card strong {
+  color: var(--paper);
+  font-weight: 600;
+}
+
+.about-actions {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  margin-top: 30px;
+}
+
+@media (max-width: 600px) {
+  .about-card { padding: 32px 22px; }
+  .about-actions { flex-direction: column; }
 }

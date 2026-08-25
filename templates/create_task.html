@@ -1,81 +1,79 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TaskHub</title>
-<link rel="stylesheet" href="{{url_for('static', filename='create_task.css')}}">
-<script src="{{url_for('static', filename='create_task.js')}}" defer></script>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@700;800&display=swap" rel="stylesheet">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='create_task.css') }}">
+<script src="{{ url_for('static', filename='create_task.js') }}" defer></script>
 </head>
 <body>
 
-  <header class="header">
+  <header class="th-header">
+    <span class="th-brand">Task<span class="mark">Hub</span></span>
 
-    <h2 class="logo">
-      <span>Task</span>Hub
-    </h2>
-
-    <nav class="navbar">
-        
+    <nav class="th-nav">
         <a href="/tasks">View Tasks</a>
         <a href="/about">About</a>
-        
     </nav>
+  </header>
 
-</header>
+  <div class="page">
+    <div class="th-card create-card">
 
-<div class="orb orb-1"></div>
-<div class="orb orb-2"></div>
+      <p class="eyebrow">New entry</p>
+      <h1>Add a task</h1>
+      <p class="subtitle">Write it down so it doesn't slip your mind</p>
 
-<div class="card">
-  <h1>Tasks</h1>
-  <p class="subtitle">Stay on top of what matters</p>
+      <form action="/create" method="POST">
 
-  <form action="/create" method="POST">
-  <div class="input-row">
-      <input name="title" type="text" id="taskInput" placeholder="Title" required />
+        <div class="th-field">
+          <label>Title</label>
+          <input name="title" type="text" placeholder="e.g. Submit assignment" required />
+        </div>
+
+        <div class="th-field">
+          <label>Description</label>
+          <input name="description" type="text" placeholder="Any extra detail" />
+        </div>
+
+        <div class="th-field">
+          <label>Category</label>
+          <select name="category">
+            <option value="Work">Work</option>
+            <option value="School">School</option>
+            <option value="Shopping">Shopping</option>
+            <option value="Health">Health</option>
+            <option value="Birthday">Birthday</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div class="th-field">
+          <label>Priority</label>
+          <select name="priority">
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+        </div>
+
+        <div class="th-field">
+          <label>Due date</label>
+          <input name="due_date" type="datetime-local" required />
+        </div>
+
+        <button type="submit" class="btn btn-primary submit-btn">Add task</button>
+
+      </form>
+
     </div>
-
-    <div class="input-row">
-      <input name="description" type="text" id="taskInput" placeholder="Task Description" />
-    </div>
-
-    <label style="display:block; margin-bottom:10px; color:var(--muted); font-size:12px; letter-spacing:0.3px;">Category</label>
-    <div class="input-row" style="margin-bottom:22px;">
-      <select name="category" id="categoryInput" style="flex:1;">
-        <option value="Work">Work</option>
-        <option value="School">School</option>
-        <option value="Shopping">Shopping</option>
-        <option value="Health">Health</option>
-        <option value="Birthday">Birthday</option>
-        <option value="Other">Other</option>
-      </select>
-    </div>
-
-    <label style="display:block; margin-bottom:10px; color:var(--muted); font-size:12px; letter-spacing:0.3px;">Priority</label>
-    <div class="input-row" style="margin-bottom:22px;">
-      <select name="priority" id="priorityInput" style="flex:1;">
-        <option value="High">High</option>
-        <option value="Medium">Medium</option>
-        <option value="Low">Low</option>
-      </select>
-    </div>
-
-    <label style="display:block; margin-bottom:10px; color:var(--muted); font-size:12px; letter-spacing:0.3px;">Due Date</label>
-    <div class="input-row" style="margin-bottom:22px;">
-      <input name="due_date" type="datetime-local" id="dateTimeInput2" required style="flex:1; padding:13px 16px; background:transparent; border:1px solid var(--border); border-radius:12px; color:var(--text); font-size:14px; outline:none; transition:border-color 0.2s, box-shadow 0.2s;" onchange="console.log('Selected: ' + this.value);" />
-    </div>
-
-    <div class="input-row" style="margin-bottom:22px;">
-      <button type="submit" style="flex:1; padding:13px 16px; background:linear-gradient(135deg, var(--accent1), var(--accent2)); border:none; border-radius:12px; color:#0d1117; font-weight:700; cursor:pointer;">Add</button>
-    </div>
-    </form>
-
-</body>
-</html>
-<body>
+  </div>
 
 </body>
 </html>
