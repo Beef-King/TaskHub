@@ -52,7 +52,10 @@
   margin-top: 30px;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 700px) {
+  .about-wrap { margin: 30px auto; padding: 0 16px; }
   .about-card { padding: 32px 22px; }
+  .about-card h1 { font-size: 1.7rem; }
   .about-actions { flex-direction: column; }
+  .about-actions .btn { width: 100%; }
 }

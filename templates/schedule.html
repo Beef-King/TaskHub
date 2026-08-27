@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskHub — Schedule</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='schedule.css') }}">
+    <script src="{{ url_for('static', filename='schedule.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='nav.js') }}" defer></script>
+</head>
+
+<body>
+
+    <header class="th-header">
+        <span class="th-brand">Task<span class="mark">Hub</span></span>
+
+        <button class="th-nav-toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false">
+            <span></span><span></span><span></span>
+        </button>
+
+        <nav class="th-nav" id="thNav">
+            <a href="/tasks">View Tasks</a>
+            <a href="/create">Create Task</a>
+            <a href="/about">About</a>
+            <a href="{{ url_for('logout') }}" class="logout">Logout</a>
+        </nav>
+    </header>
+
+    <div class="container2">
+
+        <div class="view-task">
+            <div>
+                <p class="eyebrow">Your routines and due dates</p>
+                <h1>Schedule</h1>
+            </div>
+
+            <button type="button" class="btn btn-primary" id="addScheduleBtn">+ Add routine</button>
+        </div>
+
+        <div class="schedule-toolbar">
+            <div class="view-toggle">
+                <button type="button" class="stat-pill active" id="viewWeekBtn">Week</button>
+                <button type="button" class="stat-pill" id="viewDayBtn">Day</button>
+            </div>
+
+            <div class="range-nav">
+                <button type="button" class="icon-btn" id="prevBtn" aria-label="Previous">‹</button>
+                <span id="rangeLabel" class="range-label">–</span>
+                <button type="button" class="icon-btn" id="nextBtn" aria-label="Next">›</button>
+                <button type="button" class="btn btn-ghost today-btn" id="todayBtn">Today</button>
+            </div>
+        </div>
+
+        <div class="week-grid" id="weekGrid"></div>
+
+        <div class="day-view" id="dayView" style="display:none;"></div>
+
+        <div class="routines-section">
+            <h2>Routines</h2>
+            <p class="subtitle">Recurring items that repeat daily or weekly</p>
+            <div class="routines-list" id="routinesList">
+                <p class="empty-state" id="routinesEmpty">No routines yet — add one above.</p>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="scheduleModal" class="modal">
+        <div class="modal-content th-card">
+
+            <h2 id="scheduleModalTitle">Add routine</h2>
+
+            <input type="hidden" id="scheduleId">
+
+            <div class="th-field">
+                <label>Title</label>
+                <input type="text" id="scheduleTitle" placeholder="e.g. Gym, Study block, Team standup">
+            </div>
+
+            <div class="th-field">
+                <label>Description</label>
+                <textarea id="scheduleDescription" placeholder="Any extra detail"></textarea>
+            </div>
+
+            <div class="th-field">
+                <label>Repeats</label>
+                <select id="scheduleRecurrence">
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                </select>
+            </div>
+
+            <div class="th-field" id="dayOfWeekField">
+                <label>Day of week</label>
+                <select id="scheduleDayOfWeek">
+                    <option value="Mon">Monday</option>
+                    <option value="Tue">Tuesday</option>
+                    <option value="Wed">Wednesday</option>
+                    <option value="Thu">Thursday</option>
+                    <option value="Fri">Friday</option>
+                    <option value="Sat">Saturday</option>
+                    <option value="Sun">Sunday</option>
+                </select>
+            </div>
+
+            <div class="th-field">
+                <label>Starts on</label>
+                <input type="date" id="scheduleStartDate">
+            </div>
+
+            <div class="th-field">
+                <label>Time to spend per day (minutes)</label>
+                <input type="number" id="scheduleDuration" min="1" step="5" placeholder="e.g. 30 (optional)">
+            </div>
+
+            <div class="buttons">
+                <button type="button" class="btn btn-primary" id="saveScheduleBtn">Save routine</button>
+                <button type="button" class="btn btn-ghost" id="cancelScheduleBtn">Cancel</button>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+
+</html>

@@ -56,32 +56,6 @@ body {
 .search-input:focus { border-color: var(--accent-amber); }
 .search-input::placeholder { color: var(--ink-muted); }
 
-/* ---------- Status tabs ---------- */
-.status-tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.status-tab {
-  padding: 8px 18px;
-  background: transparent;
-  border: 1px solid var(--ink-line);
-  border-radius: 20px;
-  color: var(--ink-muted);
-  font-family: var(--font-body);
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.status-tab.active {
-  background: var(--accent-amber);
-  border-color: var(--accent-amber);
-  color: #1A1509;
-}
-
 /* ---------- Filters ---------- */
 .filter-tabs {
   display: flex;
@@ -106,6 +80,100 @@ body {
 }
 
 .filter-tabs select option { background: var(--ink-raised); color: var(--ink-text); }
+
+/* ---------- Stats bar ---------- */
+.stats-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.stat-pill {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 10px 16px;
+  background: var(--ink-raised);
+  border: 1px solid var(--ink-line);
+  border-radius: 20px;
+  color: var(--ink-muted);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.stat-pill:hover { border-color: var(--paper); }
+
+.stat-pill .stat-count {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: var(--paper);
+}
+
+.stat-pill.stat-overdue .stat-count { color: var(--accent-rose); }
+
+.stat-pill.active {
+  border-color: var(--accent-amber);
+  background: var(--accent-amber-dim);
+}
+
+/* ---------- Bulk select ---------- */
+.select-wrap {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  margin-right: 4px;
+}
+
+.select-wrap input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.select-mark {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 2px solid var(--ink-muted);
+  display: inline-flex;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.select-wrap input:checked + .select-mark {
+  background: var(--accent-amber);
+  border-color: var(--accent-amber);
+}
+
+.task-card-top { align-items: center; }
+.task-card-top h3 { flex: 1; }
+
+/* ---------- Bulk action bar ---------- */
+.bulk-bar {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 18px;
+  margin-bottom: 16px;
+  background: var(--accent-amber-dim);
+  border: 1px solid rgba(217, 154, 59, 0.4);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  color: var(--paper);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.bulk-bar.visible { display: flex; }
+
+.bulk-actions { display: flex; gap: 10px; }
+.bulk-actions .btn { padding: 8px 16px; font-size: 0.85rem; }
 
 /* ---------- Task list — ledger lines ---------- */
 .task-container {
@@ -305,7 +373,52 @@ body {
 
 .buttons .btn { flex: 1; }
 
-@media (max-width: 600px) {
-  .view-task { flex-direction: column; align-items: flex-start; gap: 14px; }
-  .task-card { padding: 18px 4px 18px 18px; }
+@media (max-width: 700px) {
+  .container2 { margin: 24px auto 60px; padding: 0 16px; }
+
+  .view-task {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .view-task h1 { font-size: 1.5rem; }
+
+  .view-task .btn { width: 100%; }
+
+  .stats-bar { gap: 8px; flex-wrap: wrap; }
+  .stat-pill { flex: 1 1 auto; justify-content: center; padding: 9px 10px; font-size: 0.78rem; }
+
+  .bulk-bar { flex-direction: column; align-items: stretch; gap: 10px; }
+  .bulk-actions .btn { flex: 1; }
+
+  .filter-tabs {
+    align-items: stretch;
+  }
+
+  .filter-tabs span {
+    width: 100%;
+    margin-bottom: 2px;
+  }
+
+  .filter-tabs select {
+    flex: 1 1 45%;
+    min-width: 0;
+  }
+
+  .task-card { padding: 18px 4px 18px 16px; }
+
+  .task-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .task-actions { width: 100%; }
+
+  .icon-btn { flex: 1; text-align: center; }
+}
+
+@media (max-width: 380px) {
+  .stat-pill { font-size: 0.72rem; padding: 8px 6px; }
 }

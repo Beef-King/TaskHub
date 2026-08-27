@@ -97,6 +97,22 @@ function showResetPassword() {
     document.querySelector('.logo p').textContent = 'Create your new password.';
 }
 
+function showSignup() {
+
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
+
+    document.querySelectorAll('.tab')[1].classList.add('active');
+    document.getElementById('signup').classList.add('active');
+
+    document.querySelector('.tabs').style.display = 'flex';
+    document.querySelector('.divider').style.display = 'flex';
+    document.querySelector('.social-login').style.display = 'flex';
+
+    document.querySelector('.logo h1').textContent = 'Get Started';
+    document.querySelector('.logo p').textContent = 'Create your free account today';
+}
+
 function resendOTP() {
 
     const email = document.getElementById("otp-email").value;
@@ -163,6 +179,7 @@ window.onload = function () {
 
     const showOtp = document.getElementById("show-otp");
     const showReset = document.getElementById("show-reset");
+    const showSignup_ = document.getElementById("show-signup");
 
     if (showOtp && showOtp.value === "true") {
 
@@ -175,6 +192,12 @@ window.onload = function () {
     if (showReset && showReset.value === "true") {
 
         showResetPassword();
+
+    }
+
+    if (showSignup_ && showSignup_.value === "true") {
+
+        showSignup();
 
     }
 

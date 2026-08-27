@@ -34,6 +34,18 @@ google = oauth.register(
     }
 )
 
+github = oauth.register(
+    name="github",
+    client_id=os.getenv("GITHUB_CLIENT_ID"),
+    client_secret=os.getenv("GITHUB_CLIENT_SECRET"),
+    access_token_url="https://github.com/login/oauth/access_token",
+    authorize_url="https://github.com/login/oauth/authorize",
+    api_base_url="https://api.github.com/",
+    client_kwargs={
+        "scope": "read:user user:email"
+    }
+)
+
 @app.route("/")
 def home():
     if "user_id" in session:
@@ -108,6 +120,10 @@ def login():
             session["first_name"] = user["first_name"]
             flash(f"Welcome back, {user['first_name']}!", "success")
             return redirect(url_for("view_tasks"))
+
+        if not user:
+            flash("No account found with that email — let's create one.", "error")
+            return render_template("login.html", show_signup=True, signup_email=email)
 
         flash("Invalid email or password", "error")
         return redirect(url_for("login"))
@@ -184,6 +200,123 @@ def google_callback():
             password,
             "google",
             google_id
+        ))
+
+        connection.commit()
+
+        cursor.execute(
+            "SELECT * FROM users WHERE email=?",
+            (email,)
+        )
+
+        user = cursor.fetchone()
+
+    connection.close()
+
+    session["user_id"] = user["id"]
+    session["first_name"] = user["first_name"]
+
+    flash(f"Welcome, {user['first_name']}!", "success")
+
+    return redirect(url_for("view_tasks"))
+
+@app.route("/login/github")
+def github_login():
+    redirect_uri = url_for("github_callback", _external=True)
+    return github.authorize_redirect(redirect_uri)
+
+@app.route("/login/github/callback")
+def github_callback():
+
+    try:
+        token = github.authorize_access_token()
+
+        # Unlike Google, GitHub's profile endpoint doesn't include email
+        # by default (it may be private), so we fetch it separately.
+        profile_response = github.get("user", token=token)
+        profile_response.raise_for_status()
+        profile = profile_response.json()
+
+        emails_response = github.get("user/emails", token=token)
+        emails_response.raise_for_status()
+        emails = emails_response.json()
+
+    except Exception as e:
+        print("GitHub OAuth Error:", e)
+        flash("GitHub sign-in failed. Please try again.", "error")
+        return redirect(url_for("login"))
+
+    # Prefer the verified primary email; fall back to any verified email.
+    email = None
+    for entry in emails:
+        if entry.get("primary") and entry.get("verified"):
+            email = entry["email"]
+            break
+    if not email:
+        for entry in emails:
+            if entry.get("verified"):
+                email = entry["email"]
+                break
+
+    if not email:
+        flash("Your GitHub account has no verified email. Please add one on GitHub and try again.", "error")
+        return redirect(url_for("login"))
+
+    github_id = str(profile["id"])
+    full_name = (profile.get("name") or profile.get("login") or "").strip()
+    name_parts = full_name.split(" ", 1)
+    first_name = name_parts[0] if name_parts else profile.get("login", "")
+    last_name = name_parts[1] if len(name_parts) > 1 else ""
+
+    connection = sqlite3.connect(DB_PATH)
+    connection.row_factory = sqlite3.Row
+    cursor = connection.cursor()
+
+    cursor.execute(
+        "SELECT * FROM users WHERE email=?",
+        (email,)
+    )
+
+    user = cursor.fetchone()
+
+    if user:
+
+        cursor.execute("""
+            UPDATE users
+            SET github_id=?
+            WHERE email=?
+        """, (github_id, email))
+
+        connection.commit()
+
+        cursor.execute(
+            "SELECT * FROM users WHERE email=?",
+            (email,)
+        )
+
+        user = cursor.fetchone()
+
+    else:
+
+        password = generate_password_hash(os.urandom(24).hex())
+
+        cursor.execute("""
+            INSERT INTO users(
+                first_name,
+                last_name,
+                email,
+                password,
+                auth_provider,
+                github_id
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (
+            first_name,
+            last_name,
+            email,
+            password,
+            "github",
+            github_id
         ))
 
         connection.commit()
@@ -367,12 +500,13 @@ def create_task():
         category = request.form["category"]
         priority = request.form["priority"]
         due_date = request.form.get("due_date")
+        recurrence = request.form.get("recurrence") or None
  
         connection = sqlite3.connect(DB_PATH)
         cursor = connection.cursor()
         cursor.execute(
-            "INSERT INTO tasks (title, description, category, priority, due_date, user_id) VALUES (?, ?, ?, ?, ?, ?)",
-            (title, description, category, priority, due_date, user_id)
+            "INSERT INTO tasks (title, description, category, priority, due_date, user_id, recurrence) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (title, description, category, priority, due_date, user_id, recurrence)
         )
         connection.commit()
         connection.close()
@@ -384,6 +518,14 @@ def create_task():
 @app.route("/about")
 def about():
     return render_template("about.html")
+
+@app.route("/schedule")
+def schedule_page():
+
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    return render_template("schedule.html")
 
 #send everything from here down to Beef_King
 
@@ -455,8 +597,8 @@ def api_create_task():
 
     cursor.execute("""
         INSERT INTO tasks
-        (title, description, category, priority, due_date, status, user_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        (title, description, category, priority, due_date, status, user_id, recurrence)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         data["title"],
         data["description"],
@@ -464,7 +606,8 @@ def api_create_task():
         data["priority"],
         data["due_date"],
         "Pending",
-        session["user_id"]
+        session["user_id"],
+        data.get("recurrence")
     ))
 
     connection.commit()
@@ -496,7 +639,8 @@ def api_update_task(id):
         description=?,
         category=?,
         priority=?,
-        due_date=?
+        due_date=?,
+        recurrence=?
     WHERE id=? AND user_id=?
 """, (
     data["title"],
@@ -504,6 +648,7 @@ def api_update_task(id):
     data["category"],
     data["priority"],
     data["due_date"],
+    data.get("recurrence"),
     id,
     session["user_id"]
 ))
@@ -592,6 +737,321 @@ def api_filter_tasks():
 
     return jsonify(tasks), 200
 
+@app.route("/api/tasks/stats", methods=["GET"])
+def api_task_stats():
+
+    if "user_id" not in session:
+        return jsonify({"message": "Unauthorized"}), 401
+
+    connection = sqlite3.connect(DB_PATH)
+    connection.row_factory = sqlite3.Row
+    cursor = connection.cursor()
+
+    user_id = session["user_id"]
+
+    cursor.execute(
+        "SELECT COUNT(*) FROM tasks WHERE user_id=? AND status='Pending'",
+        (user_id,)
+    )
+    pending = cursor.fetchone()[0]
+
+    cursor.execute(
+        "SELECT COUNT(*) FROM tasks WHERE user_id=? AND status='Completed'",
+        (user_id,)
+    )
+    completed = cursor.fetchone()[0]
+
+    cursor.execute(
+        """SELECT COUNT(*) FROM tasks
+           WHERE user_id=? AND status='Pending' AND DATE(due_date) < DATE('now')""",
+        (user_id,)
+    )
+    overdue = cursor.fetchone()[0]
+
+    cursor.execute(
+        "SELECT category, COUNT(*) FROM tasks WHERE user_id=? GROUP BY category",
+        (user_id,)
+    )
+    by_category = {row[0]: row[1] for row in cursor.fetchall()}
+
+    connection.close()
+
+    return jsonify({
+        "pending": pending,
+        "completed": completed,
+        "overdue": overdue,
+        "by_category": by_category
+    }), 200
+
+@app.route("/api/tasks/bulk-complete", methods=["POST"])
+def api_bulk_complete():
+
+    if "user_id" not in session:
+        return jsonify({"message": "Unauthorized"}), 401
+
+    data = request.get_json()
+    task_ids = data.get("ids", [])
+
+    if not task_ids:
+        return jsonify({"message": "No task IDs provided"}), 400
+
+    connection = sqlite3.connect(DB_PATH)
+    cursor = connection.cursor()
+
+    placeholders = ",".join("?" for _ in task_ids)
+
+    cursor.execute(
+        f"""UPDATE tasks SET status='Completed'
+            WHERE id IN ({placeholders}) AND user_id=?""",
+        (*task_ids, session["user_id"])
+    )
+
+    updated_count = cursor.rowcount
+    connection.commit()
+    connection.close()
+
+    return jsonify({"updated": updated_count}), 200
+
+@app.route("/api/tasks/sort", methods=["GET"])
+def api_sort_tasks():
+
+    if "user_id" not in session:
+        return jsonify({"message": "Unauthorized"}), 401
+
+    sort_by = request.args.get("by", "due_date")
+
+    allowed_columns = {
+        "due_date": "due_date ASC",
+        "priority": """CASE priority
+                            WHEN 'High' THEN 1
+                            WHEN 'Medium' THEN 2
+                            WHEN 'Low' THEN 3
+                       END ASC""",
+        "title": "title ASC"
+    }
+
+    order_clause = allowed_columns.get(sort_by, "due_date ASC")
+
+    connection = sqlite3.connect(DB_PATH)
+    connection.row_factory = sqlite3.Row
+    cursor = connection.cursor()
+
+    cursor.execute(
+        f"SELECT * FROM tasks WHERE user_id=? ORDER BY {order_clause}",
+        (session["user_id"],)
+    )
+
+    tasks = [dict(task) for task in cursor.fetchall()]
+
+    connection.close()
+
+    return jsonify(tasks), 200
+
+@app.route("/api/tasks/overdue", methods=["GET"])
+def api_overdue_tasks():
+
+    if "user_id" not in session:
+        return jsonify({"message": "Unauthorized"}), 401
+
+    connection = sqlite3.connect(DB_PATH)
+    connection.row_factory = sqlite3.Row
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """SELECT * FROM tasks
+           WHERE user_id=? AND status='Pending' AND DATE(due_date) < DATE('now')
+           ORDER BY due_date ASC""",
+        (session["user_id"],)
+    )
+
+    tasks = [dict(task) for task in cursor.fetchall()]
+
+    connection.close()
+
+    return jsonify(tasks), 200
+
+@app.route("/api/tasks/range", methods=["GET"])
+def api_tasks_in_range():
+
+    if "user_id" not in session:
+        return jsonify({"message": "Unauthorized"}), 401
+
+    start = request.args.get("start")
+    end = request.args.get("end")
+
+    if not start or not end:
+        return jsonify({"message": "start and end query params are required (YYYY-MM-DD)"}), 400
+
+    connection = sqlite3.connect(DB_PATH)
+    connection.row_factory = sqlite3.Row
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """SELECT * FROM tasks
+           WHERE user_id=? AND DATE(due_date) BETWEEN DATE(?) AND DATE(?)
+           ORDER BY due_date ASC""",
+        (session["user_id"], start, end)
+    )
+
+    tasks = [dict(task) for task in cursor.fetchall()]
+
+    connection.close()
+
+    return jsonify(tasks), 200
+
+# ---------- SCHEDULES (recurring routines, separate from one-off tasks) ----------
+
+@app.route("/api/schedules", methods=["GET"])
+def api_get_schedules():
+
+    if "user_id" not in session:
+        return jsonify({"message": "Unauthorized"}), 401
+
+    connection = sqlite3.connect(DB_PATH)
+    connection.row_factory = sqlite3.Row
+    cursor = connection.cursor()
+
+    cursor.execute("SELECT * FROM schedules WHERE user_id=?", (session["user_id"],))
+    schedules = [dict(s) for s in cursor.fetchall()]
+
+    connection.close()
+    return jsonify(schedules), 200
+
+@app.route("/api/schedules", methods=["POST"])
+def api_create_schedule():
+
+    if "user_id" not in session:
+        return jsonify({"message": "Unauthorized"}), 401
+
+    data = request.get_json()
+
+    recurrence = data.get("recurrence")
+    if recurrence not in ("daily", "weekly"):
+        return jsonify({"message": "recurrence must be 'daily' or 'weekly'"}), 400
+
+    day_of_week = data.get("day_of_week") if recurrence == "weekly" else None
+    start_date = data.get("start_date") or datetime.now().strftime("%Y-%m-%d")
+    duration_minutes = data.get("duration_minutes")
+    if duration_minutes in ("", None):
+        duration_minutes = None
+    else:
+        try:
+            duration_minutes = int(duration_minutes)
+        except (TypeError, ValueError):
+            return jsonify({"message": "duration_minutes must be a number"}), 400
+
+    connection = sqlite3.connect(DB_PATH)
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        INSERT INTO schedules
+        (title, description, recurrence, day_of_week, start_date, status, duration_minutes, user_id)
+        VALUES (?, ?, ?, ?, ?, 'Active', ?, ?)
+    """, (
+        data["title"],
+        data.get("description"),
+        recurrence,
+        day_of_week,
+        start_date,
+        duration_minutes,
+        session["user_id"]
+    ))
+
+    connection.commit()
+    schedule_id = cursor.lastrowid
+    connection.close()
+
+    return jsonify({"message": "Schedule created successfully", "id": schedule_id}), 201
+
+@app.route("/api/schedules/<int:id>", methods=["PUT"])
+def api_update_schedule(id):
+
+    if "user_id" not in session:
+        return jsonify({"message": "Unauthorized"}), 401
+
+    data = request.get_json()
+
+    recurrence = data.get("recurrence")
+    if recurrence not in ("daily", "weekly"):
+        return jsonify({"message": "recurrence must be 'daily' or 'weekly'"}), 400
+
+    day_of_week = data.get("day_of_week") if recurrence == "weekly" else None
+    duration_minutes = data.get("duration_minutes")
+    if duration_minutes in ("", None):
+        duration_minutes = None
+    else:
+        try:
+            duration_minutes = int(duration_minutes)
+        except (TypeError, ValueError):
+            return jsonify({"message": "duration_minutes must be a number"}), 400
+
+    connection = sqlite3.connect(DB_PATH)
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        UPDATE schedules
+        SET title=?, description=?, recurrence=?, day_of_week=?, start_date=?, duration_minutes=?
+        WHERE id=? AND user_id=?
+    """, (
+        data["title"],
+        data.get("description"),
+        recurrence,
+        day_of_week,
+        data.get("start_date"),
+        duration_minutes,
+        id,
+        session["user_id"]
+    ))
+
+    connection.commit()
+    connection.close()
+
+    return jsonify({"message": "Schedule updated successfully"}), 200
+
+@app.route("/api/schedules/<int:id>", methods=["DELETE"])
+def api_delete_schedule(id):
+
+    if "user_id" not in session:
+        return jsonify({"message": "Unauthorized"}), 401
+
+    connection = sqlite3.connect(DB_PATH)
+    cursor = connection.cursor()
+
+    cursor.execute("DELETE FROM schedules WHERE id=? AND user_id=?", (id, session["user_id"]))
+
+    connection.commit()
+    connection.close()
+
+    return jsonify({"message": "Schedule deleted successfully"}), 200
+
+@app.route("/api/schedules/<int:id>/toggle", methods=["POST"])
+def api_toggle_schedule(id):
+
+    if "user_id" not in session:
+        return jsonify({"message": "Unauthorized"}), 401
+
+    connection = sqlite3.connect(DB_PATH)
+    connection.row_factory = sqlite3.Row
+    cursor = connection.cursor()
+
+    cursor.execute("SELECT status FROM schedules WHERE id=? AND user_id=?", (id, session["user_id"]))
+    schedule = cursor.fetchone()
+
+    if not schedule:
+        connection.close()
+        return jsonify({"message": "Schedule not found"}), 404
+
+    new_status = "Paused" if schedule["status"] == "Active" else "Active"
+
+    cursor.execute(
+        "UPDATE schedules SET status=? WHERE id=? AND user_id=?",
+        (new_status, id, session["user_id"])
+    )
+    connection.commit()
+    connection.close()
+
+    return jsonify({"message": "Schedule updated", "status": new_status}), 200
+
 @app.route("/complete/<int:id>", methods=["POST"])
 def complete_task(id):
 
@@ -599,14 +1059,14 @@ def complete_task(id):
     cursor = connection.cursor()
 
     cursor.execute(
-        "SELECT status FROM tasks WHERE id=? AND user_id=?",
+        "SELECT status, title, description, category, priority, due_date, recurrence FROM tasks WHERE id=? AND user_id=?",
         (id, session["user_id"])
     )
 
     task = cursor.fetchone()
 
     if task:
-        current_status = task[0]
+        current_status, title, description, category, priority, due_date, recurrence = task
 
         if current_status == "Pending":
             new_status = "Completed"
@@ -617,6 +1077,23 @@ def complete_task(id):
             "UPDATE tasks SET status=? WHERE id=? AND user_id=?",
             (new_status, id, session["user_id"])
         )
+
+        # If this task just got completed and it's a recurring task,
+        # create the next occurrence so it doesn't just disappear.
+        if new_status == "Completed" and recurrence in ("daily", "weekly") and due_date:
+            try:
+                current_due = datetime.strptime(due_date, "%Y-%m-%d")
+                delta = timedelta(days=1) if recurrence == "daily" else timedelta(days=7)
+                next_due = (current_due + delta).strftime("%Y-%m-%d")
+
+                cursor.execute("""
+                    INSERT INTO tasks
+                    (title, description, category, priority, due_date, status, user_id, recurrence, reminder_sent)
+                    VALUES (?, ?, ?, ?, ?, 'Pending', ?, ?, 0)
+                """, (title, description, category, priority, next_due, session["user_id"], recurrence))
+            except ValueError:
+                # due_date wasn't in the expected format, skip auto-recurrence
+                pass
 
         connection.commit()
 

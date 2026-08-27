@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='view_task.css') }}">
     <script src="{{ url_for('static', filename='view_task.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='nav.js') }}" defer></script>
 </head>
 
 <body>
@@ -19,8 +20,13 @@
     <header class="th-header">
         <span class="th-brand">Task<span class="mark">Hub</span></span>
 
-        <nav class="th-nav">
+        <button class="th-nav-toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false">
+            <span></span><span></span><span></span>
+        </button>
+
+        <nav class="th-nav" id="thNav">
             <a href="/create">Create Task</a>
+            <a href="/schedule">Schedule</a>
             <a href="/about">About</a>
             <a href="{{ url_for('logout') }}" class="logout">Logout</a>
         </nav>
@@ -37,18 +43,27 @@
             <a href="/create" class="btn btn-primary">+ Add task</a>
         </div>
 
+        <div class="stats-bar" id="statsBar">
+            <button type="button" class="stat-pill stat-all active" id="statAll">
+                All
+            </button>
+            <button type="button" class="stat-pill" id="statPending">
+                <span class="stat-count">–</span> Pending
+            </button>
+            <button type="button" class="stat-pill" id="statCompleted">
+                <span class="stat-count">–</span> Completed
+            </button>
+            <button type="button" class="stat-pill stat-overdue" id="statOverdue">
+                <span class="stat-count">–</span> Overdue
+            </button>
+        </div>
+
         <div class="search-container">
             <input
                 type="text"
                 id="searchInput"
                 class="search-input"
                 placeholder="Search tasks...">
-        </div>
-
-        <div class="status-tabs">
-            <button id="allBtn" class="status-tab active">All</button>
-            <button id="pendingBtn" class="status-tab">Pending</button>
-            <button id="completedBtn" class="status-tab">Completed</button>
         </div>
 
         <div class="filter-tabs">
@@ -70,15 +85,34 @@
                 <option>Medium</option>
                 <option>Low</option>
             </select>
+
+            <select id="sortSelect">
+                <option value="" selected>Default order</option>
+                <option value="due_date">Sort: Due date</option>
+                <option value="priority">Sort: Priority</option>
+                <option value="title">Sort: Title (A-Z)</option>
+            </select>
         </div>
 
-        <div class="task-container">
+        <div class="bulk-bar" id="bulkBar">
+            <span id="bulkCount">0 selected</span>
+            <div class="bulk-actions">
+                <button type="button" class="btn btn-primary" id="bulkCompleteBtn">Mark complete</button>
+                <button type="button" class="btn btn-ghost" id="bulkCancelBtn">Cancel</button>
+            </div>
+        </div>
+
+        <div class="task-container" id="taskContainer">
 
             {% for task in tasks %}
 
             <div class="task-card {{ 'done' if task['status'] == 'Completed' else '' }}">
 
                 <div class="task-card-top">
+                    <label class="select-wrap">
+                        <input type="checkbox" class="select-checkbox" data-id="{{ task['id'] }}">
+                        <span class="select-mark"></span>
+                    </label>
                     <h3>{{ task["title"] }}</h3>
                     <span class="tag tag-priority">{{ task["priority"] }}</span>
                 </div>
@@ -92,16 +126,14 @@
 
                 <div class="task-footer">
 
-                    <form action="{{ url_for('complete_task', id=task['id']) }}" method="POST" class="status-form">
-                        <label class="check-wrap">
-                            <input
-                                type="checkbox"
-                                onchange="this.form.submit()"
-                                {% if task["status"] == "Completed" %}checked{% endif %}>
-                            <span class="check-mark"></span>
-                            <span class="status">{{ task["status"] }}</span>
-                        </label>
-                    </form>
+                    <label class="check-wrap">
+                        <input
+                            type="checkbox"
+                            onchange="toggleComplete({{ task['id'] }})"
+                            {% if task["status"] == "Completed" %}checked{% endif %}>
+                        <span class="check-mark"></span>
+                        <span class="status">{{ task["status"] }}</span>
+                    </label>
 
                     <div class="task-actions">
                         <button type="button" class="icon-btn edit-btn" onclick="editTask({{ task['id'] }})">Edit</button>
