@@ -8,7 +8,7 @@ EMAIL_PASSWORD = "clxs qzty xwyh wjei"
 def send_email(to_email, subject, body):
     msg = MIMEText(body)
     msg["Subject"] = subject
-    msg["From"] = EMAIL_ADDRESS
+    msg["From"] = f"TaskHub <{EMAIL_ADDRESS}>"
     msg["To"] = to_email
 
     with smtplib.SMTP("smtp.gmail.com", 587) as server:
