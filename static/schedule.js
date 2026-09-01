@@ -63,6 +63,16 @@ async function fetchSchedules() {
     return res.json();
 }
 
+async function fetchCompletions(startStr, endStr) {
+    const res = await fetch(`/api/schedules/completions?start=${startStr}&end=${endStr}`);
+    if (!res.ok) return [];
+    return res.json();
+}
+
+function isCompletedOn(completions, scheduleId, dateStr) {
+    return completions.some(c => c.schedule_id === scheduleId && c.date === dateStr);
+}
+
 // Does this schedule occur on the given date?
 function scheduleOccursOn(sched, date) {
     if (sched.status !== "Active") return false;
@@ -98,12 +108,14 @@ async function renderWeekView() {
 
     document.getElementById("rangeLabel").textContent = niceRangeLabel(start, end);
 
-    const [tasks, schedules] = await Promise.all([
+    const [tasks, schedules, completions] = await Promise.all([
         fetchTasksInRange(isoDate(start), isoDate(end)),
-        fetchSchedules()
+        fetchSchedules(),
+        fetchCompletions(isoDate(start), isoDate(end))
     ]);
     schedulesCache = schedules;
     renderRoutines(schedules);
+    refreshDashboard(schedules);
 
     const grid = document.getElementById("weekGrid");
     grid.innerHTML = "";
@@ -122,7 +134,13 @@ async function renderWeekView() {
         const itemsHtml = [
             ...daySchedules.map(s => {
                 const durationLabel = s.duration_minutes ? ` · ${formatDuration(s.duration_minutes)}` : "";
-                return `<span class="chip chip-routine" title="${escapeHtml(s.description || '')}">${escapeHtml(s.title)}${durationLabel}</span>`;
+                const done = isCompletedOn(completions, s.id, dayStr);
+                return `
+                    <label class="chip chip-routine${done ? " done" : ""}" title="${escapeHtml(s.description || '')}">
+                        <input type="checkbox" ${done ? "checked" : ""} onchange="toggleScheduleCompletion(${s.id}, '${dayStr}')">
+                        <span>${escapeHtml(s.title)}${durationLabel}</span>
+                    </label>
+                `;
             }),
             ...dayTasks.map(t => {
                 const cls = ["chip", "chip-task"];
@@ -144,6 +162,20 @@ async function renderWeekView() {
 
         grid.appendChild(col);
     }
+
+    centerHighlightedDay(grid);
+}
+
+function centerHighlightedDay(grid) {
+    // Center today's column if it's in view, otherwise center the first column
+    // of the displayed week — so the user never has to scroll to see it.
+    const target = grid.querySelector(".day-column.is-today") || grid.firstElementChild;
+    if (!target) return;
+
+    requestAnimationFrame(() => {
+        const targetCenter = target.offsetLeft + target.offsetWidth / 2;
+        grid.scrollLeft = targetCenter - grid.clientWidth / 2;
+    });
 }
 
 // ---------- rendering: day view ----------
@@ -155,12 +187,14 @@ async function renderDayView() {
     const dayStr = isoDate(anchorDate);
     document.getElementById("rangeLabel").textContent = niceRangeLabel(anchorDate, anchorDate);
 
-    const [tasks, schedules] = await Promise.all([
+    const [tasks, schedules, completions] = await Promise.all([
         fetchTasksInRange(dayStr, dayStr),
-        fetchSchedules()
+        fetchSchedules(),
+        fetchCompletions(dayStr, dayStr)
     ]);
     schedulesCache = schedules;
     renderRoutines(schedules);
+    refreshDashboard(schedules);
 
     const daySchedules = schedules.filter(s => scheduleOccursOn(s, anchorDate));
 
@@ -168,12 +202,16 @@ async function renderDayView() {
     const heading = `<div class="day-view-heading">${WEEKDAY_FULL[dowIndex(anchorDate)]}, ${MONTH_LABELS[anchorDate.getMonth()]} ${anchorDate.getDate()}</div>`;
 
     const items = [
-        ...daySchedules.map(s => `
-            <div class="agenda-item routine">
-                <span class="agenda-title">${escapeHtml(s.title)}</span>
-                <span class="agenda-meta">Routine · ${s.recurrence === "daily" ? "Daily" : "Weekly"}${s.duration_minutes ? " · " + formatDuration(s.duration_minutes) : ""}</span>
-            </div>
-        `),
+        ...daySchedules.map(s => {
+            const done = isCompletedOn(completions, s.id, dayStr);
+            return `
+                <label class="agenda-item routine${done ? " done" : ""}">
+                    <input type="checkbox" ${done ? "checked" : ""} onchange="toggleScheduleCompletion(${s.id}, '${dayStr}')">
+                    <span class="agenda-title">${escapeHtml(s.title)}</span>
+                    <span class="agenda-meta">Routine · ${s.recurrence === "daily" ? "Daily" : "Weekly"}${s.duration_minutes ? " · " + formatDuration(s.duration_minutes) : ""}</span>
+                </label>
+            `;
+        }),
         ...tasks.map(t => {
             const cls = ["agenda-item"];
             if (t.status === "Completed") cls.push("done");
@@ -193,6 +231,59 @@ async function renderDayView() {
 function render() {
     if (viewMode === "week") renderWeekView();
     else renderDayView();
+}
+
+async function toggleScheduleCompletion(id, dateStr) {
+    try {
+        const res = await fetch(`/api/schedules/${id}/complete`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ date: dateStr })
+        });
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+        if (data.completed) showMotivation();
+
+        render();
+    } catch (err) {
+        console.error("Error toggling routine completion:", err);
+    }
+}
+
+async function refreshDashboard(schedules) {
+    const realToday = startOfDay(new Date());
+    const rWeekStart = weekStart(realToday);
+    const rWeekEnd = addDays(rWeekStart, 6);
+    const todayStr = isoDate(realToday);
+
+    const completions = await fetchCompletions(isoDate(rWeekStart), isoDate(rWeekEnd));
+
+    let weekTotal = 0, weekDone = 0;
+    let todayTotal = 0, todayDone = 0;
+
+    for (let i = 0; i < 7; i++) {
+        const day = addDays(rWeekStart, i);
+        const dayStr = isoDate(day);
+        const occurring = schedules.filter(s => scheduleOccursOn(s, day));
+
+        occurring.forEach(s => {
+            const done = isCompletedOn(completions, s.id, dayStr);
+            weekTotal++;
+            if (done) weekDone++;
+            if (dayStr === todayStr) {
+                todayTotal++;
+                if (done) todayDone++;
+            }
+        });
+    }
+
+    document.getElementById("todayProgressCount").textContent = `${todayDone} / ${todayTotal}`;
+    document.getElementById("todayProgressFill").style.width = todayTotal ? `${(todayDone / todayTotal) * 100}%` : "0%";
+
+    document.getElementById("weekProgressCount").textContent = `${weekDone} / ${weekTotal}`;
+    document.getElementById("weekProgressFill").style.width = weekTotal ? `${(weekDone / weekTotal) * 100}%` : "0%";
 }
 
 // ---------- routines panel ----------

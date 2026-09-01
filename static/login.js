@@ -83,6 +83,19 @@ function showVerifyOTP(email) {
     document.getElementById('otp-email').value = email;
 }
 
+function togglePasswordVisibility(button) {
+
+    const field = button.parentElement.querySelector("input");
+
+    if (!field) return;
+
+    const isVisible = field.type === "text";
+
+    field.type = isVisible ? "password" : "text";
+    button.classList.toggle("visible", !isVisible);
+    button.setAttribute("aria-label", isVisible ? "Show password" : "Hide password");
+}
+
 function showResetPassword() {
 
     document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));

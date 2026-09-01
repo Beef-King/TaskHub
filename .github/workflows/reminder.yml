@@ -1,18 +1,45 @@
-name: Daily Task Reminder
+name: Daily Task Reminders
 
 on:
   schedule:
-    - cron: "0 7 * * *"
+    - cron: "30 5 * * *"   # 6:30 AM WAT (UTC+1)
+    - cron: "30 17 * * *"  # 6:30 PM WAT (UTC+1)
 
   workflow_dispatch:
+    inputs:
+      endpoint:
+        description: "Which reminder to send (manual test runs only)"
+        type: choice
+        options:
+          - auto
+          - morning
+          - evening
+        default: auto
 
 jobs:
-  reminder:
+  send-reminder:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Determine which reminder to send
+        id: which
+        run: |
+          CHOSEN="${{ github.event.inputs.endpoint }}"
+
+          if [ -n "$CHOSEN" ] && [ "$CHOSEN" != "auto" ]; then
+            echo "endpoint=$CHOSEN" >> "$GITHUB_OUTPUT"
+          else
+            HOUR_UTC=$(date -u +%H)
+            if [ "$HOUR_UTC" = "05" ]; then
+              echo "endpoint=morning" >> "$GITHUB_OUTPUT"
+            else
+              echo "endpoint=evening" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
       - name: Trigger reminder endpoint
         run: |
-          curl -X POST \
+          echo "Hitting /api/reminders/${{ steps.which.outputs.endpoint }}"
+          curl -f -X POST \
           -H "X-SECRET-TOKEN: ${{ secrets.REMINDER_SECRET }}" \
-          https://beefking7.pythonanywhere.com/api/reminders
+          https://beefking7.pythonanywhere.com/api/reminders/${{ steps.which.outputs.endpoint }}

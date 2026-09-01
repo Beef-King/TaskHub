@@ -31,18 +31,14 @@ body {
 .logo { text-align: center; margin-bottom: 28px; }
 
 .logo-icon {
-    width: 60px;
-    height: 60px;
-    background: var(--accent-amber);
-    border-radius: 16px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    width: 84px;
+    height: 84px;
+    border-radius: 20px;
+    display: inline-block;
     margin-bottom: 16px;
     box-shadow: 0 8px 20px rgba(217, 154, 59, 0.3);
+    object-fit: cover;
 }
-
-.logo-icon svg { width: 30px; height: 30px; fill: #1A1509; }
 
 .logo h1 {
     font-size: 1.5rem;
@@ -144,6 +140,30 @@ body {
 .input-wrapper input:focus + .input-icon { color: var(--accent-amber); }
 
 .input-icon svg { width: 18px; height: 18px; fill: currentColor; }
+
+.input-wrapper.has-toggle input { padding-right: 44px; }
+
+.toggle-password {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    padding: 4px;
+    color: var(--ink-muted);
+    cursor: pointer;
+    display: flex;
+    transition: color 0.2s ease;
+}
+
+.toggle-password:hover { color: var(--accent-amber); }
+
+.toggle-password svg { width: 18px; height: 18px; fill: currentColor; }
+
+.toggle-password .icon-eye-off { display: none; }
+.toggle-password.visible .icon-eye { display: none; }
+.toggle-password.visible .icon-eye-off { display: block; }
 
 .options {
     display: flex;

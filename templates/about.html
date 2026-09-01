@@ -35,39 +35,52 @@
         <div class="th-card about-card">
 
             <h1>About TaskHub</h1>
-            <p class="lead">A simple and efficient task management system built with Flask.</p>
+            <p class="lead">A task manager that started as a class assignment — and got a second life.</p>
 
             <hr>
 
             <p>
-                This task management system is a web-based application designed
-                to help users organize, track, and manage their daily tasks
-                efficiently.
+                TaskHub began as a <strong>COS Group 5</strong> assignment: a
+                straightforward Flask and SQLite app for creating, updating,
+                and organizing tasks. It did the job, ticked the assignment
+                boxes, and then sat untouched for months.
             </p>
 
             <p>
-                Users can create, view, update, and delete tasks, assign
-                priorities, set due dates, and organize tasks into categories
-                for better planning.
+                When I came back to it, I didn't just want to patch it up —
+                I wanted to rebuild it into something I'd actually want to
+                use. The backend stayed the same at its core, but almost
+                everything else was reworked: a full visual redesign, a
+                proper JSON API behind the interface instead of full-page
+                reloads for every click, and a lot of attention to making it
+                feel like a real product rather than a homework submission.
             </p>
 
             <p>
-                The application uses <strong>Flask</strong> for the backend,
-                <strong>SQLite</strong> for the database, and
+                Today, TaskHub is a task and schedule manager built around
+                daily use. You can create tasks with categories, priorities,
+                due dates, and recurrence, then filter, sort, and bulk-manage
+                them from a live dashboard. Alongside tasks, a
+                <strong>Schedule</strong> page tracks recurring routines —
+                daily or weekly — with time-per-day targets and a progress
+                dashboard showing how consistent you've been. Email reminders
+                keep both tasks and routines from slipping through the
+                cracks, and sign-in works with GitHub or Google, not just a
+                password.
+            </p>
+
+            <p>
+                The application runs on <strong>Flask</strong> for the
+                backend, <strong>SQLite</strong> for the database, and
                 <strong>HTML</strong>, <strong>CSS</strong>, and
-                <strong>JavaScript</strong> for the frontend.
-            </p>
-
-            <p>
-                This project was developed as a <strong>COS Group 5</strong>
-                assignment to demonstrate frontend development, backend
-                routing, user authentication, database management, REST APIs,
-                and version control with GitHub.
+                <strong>JavaScript</strong> for the frontend — the same
+                stack it started with, just used a lot more deliberately
+                the second time around.
             </p>
 
             <div class="about-actions">
                 <a href="/tasks" class="btn btn-primary">View Tasks</a>
-                <a href="/create" class="btn btn-ghost">Create Task</a>
+                <a href="/schedule" class="btn btn-ghost">View Schedule</a>
             </div>
 
         </div>

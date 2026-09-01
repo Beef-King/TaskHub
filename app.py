@@ -8,6 +8,7 @@ import sqlite3
 import os
 from dotenv import load_dotenv
 from authlib.integrations.flask_client import OAuth
+from digest_helpers import WEEKDAYS, get_quote, schedule_occurs_today, APP_BASE_URL
 
 load_dotenv()
 
@@ -21,7 +22,6 @@ DB_PATH = os.path.join(BASE_DIR, "database.db")
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
 
-# app.secret_key = "group5_secret_key"
 
 oauth = OAuth(app)
 google = oauth.register(
@@ -1052,6 +1052,78 @@ def api_toggle_schedule(id):
 
     return jsonify({"message": "Schedule updated", "status": new_status}), 200
 
+@app.route("/api/schedules/<int:id>/complete", methods=["POST"])
+def api_toggle_schedule_completion(id):
+
+    if "user_id" not in session:
+        return jsonify({"message": "Unauthorized"}), 401
+
+    data = request.get_json() or {}
+    date = data.get("date")
+
+    if not date:
+        return jsonify({"message": "date is required (YYYY-MM-DD)"}), 400
+
+    connection = sqlite3.connect(DB_PATH)
+    connection.row_factory = sqlite3.Row
+    cursor = connection.cursor()
+
+    # confirm the schedule belongs to this user
+    cursor.execute("SELECT id FROM schedules WHERE id=? AND user_id=?", (id, session["user_id"]))
+    if not cursor.fetchone():
+        connection.close()
+        return jsonify({"message": "Schedule not found"}), 404
+
+    cursor.execute(
+        "SELECT id FROM schedule_completions WHERE schedule_id=? AND date=? AND user_id=?",
+        (id, date, session["user_id"])
+    )
+    existing = cursor.fetchone()
+
+    if existing:
+        cursor.execute("DELETE FROM schedule_completions WHERE id=?", (existing["id"],))
+        completed = False
+    else:
+        cursor.execute(
+            "INSERT INTO schedule_completions (schedule_id, date, user_id) VALUES (?, ?, ?)",
+            (id, date, session["user_id"])
+        )
+        completed = True
+
+    connection.commit()
+    connection.close()
+
+    return jsonify({"message": "Updated", "completed": completed}), 200
+
+@app.route("/api/schedules/completions", methods=["GET"])
+def api_get_schedule_completions():
+
+    if "user_id" not in session:
+        return jsonify({"message": "Unauthorized"}), 401
+
+    start = request.args.get("start")
+    end = request.args.get("end")
+
+    if not start or not end:
+        return jsonify({"message": "start and end query params are required (YYYY-MM-DD)"}), 400
+
+    connection = sqlite3.connect(DB_PATH)
+    connection.row_factory = sqlite3.Row
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """SELECT schedule_id, date FROM schedule_completions
+           WHERE user_id=? AND date BETWEEN ? AND ?""",
+        (session["user_id"], start, end)
+    )
+
+    completions = [dict(row) for row in cursor.fetchall()]
+
+    connection.close()
+
+    return jsonify(completions), 200
+
+
 @app.route("/complete/<int:id>", methods=["POST"])
 def complete_task(id):
 
@@ -1101,82 +1173,152 @@ def complete_task(id):
 
     return redirect(url_for("view_tasks"))
 
-@app.route("/api/reminders" , methods=["POST"])
-def api_reminders():
+@app.route("/api/reminders/morning", methods=["POST"])
+def api_reminders_morning():
 
     secret = request.headers.get("X-SECRET-TOKEN")
 
     if secret != os.environ.get("REMINDER_SECRET"):
         return jsonify({"error": "Unauthorized"}), 401
 
-    # your reminder code...
+    today = datetime.now()
+    today_str = today.strftime("%Y-%m-%d")
+    today_dow = WEEKDAYS[today.weekday()]
 
     connection = sqlite3.connect(DB_PATH)
     connection.row_factory = sqlite3.Row
     cursor = connection.cursor()
 
-    tomorrow = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
-
-    cursor.execute("""
-        SELECT
-            tasks.id,
-            tasks.title,
-            tasks.due_date,
-            users.email
-        FROM tasks
-        JOIN users
-        ON tasks.user_id = users.id
-        WHERE
-            tasks.status = 'Pending'
-            AND tasks.reminder_sent = 0
-            AND DATE(tasks.due_date) = ?
-    """, (tomorrow,))
-
-    reminders = cursor.fetchall()
+    cursor.execute("SELECT id, first_name, email FROM users")
+    users = cursor.fetchall()
 
     emails_sent = 0
 
-    for reminder in reminders:
+    for user in users:
 
-        subject = "⏰ Task Reminder"
+        cursor.execute(
+            """SELECT COUNT(*) FROM tasks
+               WHERE user_id=? AND status='Pending' AND DATE(due_date)=DATE(?)""",
+            (user["id"], today_str)
+        )
+        task_count = cursor.fetchone()[0]
 
-        body = f"""
-Hello!
+        cursor.execute(
+            "SELECT * FROM schedules WHERE user_id=? AND status='Active'",
+            (user["id"],)
+        )
+        schedules = cursor.fetchall()
+        routine_count = sum(1 for s in schedules if schedule_occurs_today(s, today_str, today_dow))
 
-This is a reminder that your task:
+        quote = get_quote()
+        link = f"{APP_BASE_URL}/schedule"
 
-{reminder['title']}
+        if task_count == 0 and routine_count == 0:
+            subject = "\U0001F305 Your TaskHub Daily Agenda"
+            body = f"""Good morning, {user['first_name']}!
 
-is due tomorrow ({reminder['due_date']}).
+Nothing due today and no routines on deck — a rare clear morning.
 
-Log into TaskHub to complete it.
+"{quote}"
+
+Check your schedule anytime: {link}
+
+- TaskHub
+"""
+        else:
+            task_word = "task" if task_count == 1 else "tasks"
+            routine_word = "routine" if routine_count == 1 else "routines"
+
+            subject = "\U0001F305 Your TaskHub Daily Agenda"
+            body = f"""Good morning, {user['first_name']}!
+
+Here's your agenda for today:
+
+\U0001F4CB {task_count} {task_word} due today
+\U0001F501 {routine_count} {routine_word} on your schedule today
+
+"{quote}"
+
+Open TaskHub: {link}
 
 Have a productive day!
 
 - TaskHub
 """
 
-        send_email(
-            reminder["email"],
-            subject,
-            body
-        )
-
-        cursor.execute("""
-            UPDATE tasks
-            SET reminder_sent = 1
-            WHERE id = ?
-        """, (reminder["id"],))
-
+        send_email(user["email"], subject, body)
         emails_sent += 1
 
-    connection.commit()
     connection.close()
 
-    return jsonify({
-        "success": True,
-        "emails_sent": emails_sent
-    })
+    return jsonify({"success": True, "emails_sent": emails_sent}), 200
+
+@app.route("/api/reminders/evening", methods=["POST"])
+def api_reminders_evening():
+
+    secret = request.headers.get("X-SECRET-TOKEN")
+
+    if secret != os.environ.get("REMINDER_SECRET"):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    today_str = datetime.now().strftime("%Y-%m-%d")
+
+    connection = sqlite3.connect(DB_PATH)
+    connection.row_factory = sqlite3.Row
+    cursor = connection.cursor()
+
+    cursor.execute("SELECT id, first_name, email FROM users")
+    users = cursor.fetchall()
+
+    emails_sent = 0
+
+    for user in users:
+
+        cursor.execute(
+            """SELECT COUNT(*) FROM tasks
+               WHERE user_id=? AND status='Pending' AND DATE(due_date)=DATE(?)""",
+            (user["id"], today_str)
+        )
+        task_count = cursor.fetchone()[0]
+
+        quote = get_quote()
+        link = f"{APP_BASE_URL}/tasks"
+
+        if task_count == 0:
+            subject = "\U0001F319 All done — plan for tomorrow"
+            body = f"""Hey {user['first_name']},
+
+Everything on today's list is done. Nice work.
+
+Take a moment to plan for tomorrow.
+
+"{quote}"
+
+- TaskHub
+"""
+        else:
+            task_word = "task" if task_count == 1 else "tasks"
+
+            subject = f"\U0001F319 {task_count} {task_word} left today"
+            body = f"""Hey {user['first_name']},
+
+You've still got {task_count} {task_word} left to complete today.
+
+Lock in and get them done — then take a moment to plan for tomorrow.
+
+"{quote}"
+
+Finish up on TaskHub: {link}
+
+- TaskHub
+"""
+
+        send_email(user["email"], subject, body)
+        emails_sent += 1
+
+    connection.close()
+
+    return jsonify({"success": True, "emails_sent": emails_sent}), 200
 
 
 if __name__ == "__main__":

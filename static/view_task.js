@@ -54,7 +54,7 @@ function renderTasks(tasks) {
 
                 <div class="task-footer">
                     <label class="check-wrap">
-                        <input type="checkbox" onchange="toggleComplete(${task.id})" ${isDone ? "checked" : ""}>
+                        <input type="checkbox" onchange="toggleComplete(${task.id}, this.checked)" ${isDone ? "checked" : ""}>
                         <span class="check-mark"></span>
                         <span class="status">${escapeHtml(task.status)}</span>
                     </label>
@@ -296,6 +296,8 @@ if (bulkCompleteBtn) {
                 return;
             }
 
+            showMotivation();
+
             selectedIds.clear();
             updateBulkBar();
             loadTasks();
@@ -319,7 +321,7 @@ if (bulkCancelBtn) {
 // TASK ACTIONS — complete / delete / edit / save
 // =====================================================
 
-async function toggleComplete(id) {
+async function toggleComplete(id, willBeCompleted) {
     try {
         const response = await fetch(`/complete/${id}`, { method: "POST" });
 
@@ -327,6 +329,8 @@ async function toggleComplete(id) {
             alert("Failed to update task status.");
             return;
         }
+
+        if (willBeCompleted) showMotivation();
 
         loadTasks();
         loadStats();

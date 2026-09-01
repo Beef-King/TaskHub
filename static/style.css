@@ -117,9 +117,13 @@ body { overflow-x: hidden; }
 .feature-card:hover { transform: translateY(-4px); }
 
 .feature-card img {
-  width: 42px;
-  margin-bottom: 18px;
-  opacity: 0.9;
+  display: block;
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 14px;
+  margin: 0 auto 18px;
+  opacity: 0.95;
 }
 
 .feature-card h3 {

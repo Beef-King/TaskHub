@@ -1,0 +1,26 @@
+.motivation-toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(16px);
+    background: var(--ink-raised);
+    border: 1px solid var(--accent-amber);
+    color: var(--paper);
+    padding: 12px 22px;
+    border-radius: 999px;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 600;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    z-index: 500;
+    max-width: 88vw;
+    text-align: center;
+}
+
+.motivation-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}

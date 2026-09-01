@@ -11,7 +11,9 @@
 
     <link rel="stylesheet" href="{{ url_for('static', filename='theme.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='schedule.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='motivation.css') }}">
     <script src="{{ url_for('static', filename='schedule.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='motivation.js') }}" defer></script>
     <script src="{{ url_for('static', filename='nav.js') }}" defer></script>
 </head>
 
@@ -54,6 +56,27 @@
                 <span id="rangeLabel" class="range-label">–</span>
                 <button type="button" class="icon-btn" id="nextBtn" aria-label="Next">›</button>
                 <button type="button" class="btn btn-ghost today-btn" id="todayBtn">Today</button>
+            </div>
+        </div>
+
+        <div class="progress-dashboard" id="progressDashboard">
+            <div class="progress-card">
+                <div class="progress-card-head">
+                    <span class="progress-label">Today's routines</span>
+                    <span class="progress-count" id="todayProgressCount">0 / 0</span>
+                </div>
+                <div class="progress-bar-track">
+                    <div class="progress-bar-fill" id="todayProgressFill" style="width:0%"></div>
+                </div>
+            </div>
+            <div class="progress-card">
+                <div class="progress-card-head">
+                    <span class="progress-label">This week</span>
+                    <span class="progress-count" id="weekProgressCount">0 / 0</span>
+                </div>
+                <div class="progress-bar-track">
+                    <div class="progress-bar-fill" id="weekProgressFill" style="width:0%"></div>
+                </div>
             </div>
         </div>
 

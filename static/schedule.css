@@ -2,6 +2,7 @@
 
 body {
   min-height: 100vh;
+  overflow-x: hidden;
   background:
     radial-gradient(circle at 15% 10%, rgba(217, 154, 59, 0.07), transparent 40%),
     radial-gradient(circle at 85% 80%, rgba(62, 124, 89, 0.07), transparent 45%),
@@ -13,6 +14,7 @@ body {
   max-width: 1040px;
   margin: 40px auto 80px;
   padding: 0 20px;
+  box-sizing: border-box;
 }
 
 .view-task {
@@ -97,12 +99,61 @@ body {
 
 .today-btn { padding: 7px 14px; font-size: 0.82rem; }
 
+/* ---------- Progress dashboard ---------- */
+.progress-dashboard {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.progress-card {
+  background: var(--ink-raised);
+  border: 1px solid var(--ink-line);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+}
+
+.progress-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+
+.progress-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.progress-count {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--paper);
+}
+
+.progress-bar-track {
+  height: 8px;
+  border-radius: 20px;
+  background: rgba(243, 238, 227, 0.08);
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 20px;
+  background: var(--accent-green);
+  transition: width 0.35s ease;
+}
+
 /* ---------- Week grid ---------- */
 .week-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 10px;
   margin-bottom: 36px;
+  position: relative;
 }
 
 .day-column {
@@ -175,9 +226,24 @@ body {
 .chip-task.done { border-left-color: var(--ink-muted); opacity: 0.6; text-decoration: line-through; }
 .chip-task.overdue { border-left-color: var(--accent-rose); }
 .chip-routine {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   border-left-style: dashed;
   border-left-color: var(--accent-amber);
   background: var(--accent-amber-dim);
+  cursor: pointer;
+}
+.chip-routine input[type="checkbox"] {
+  accent-color: var(--accent-amber);
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+.chip-routine.done {
+  opacity: 0.6;
+}
+.chip-routine.done span { text-decoration: line-through; }
 }
 
 /* ---------- Day view (agenda list) ---------- */
@@ -204,7 +270,8 @@ body {
   margin-bottom: 8px;
 }
 
-.agenda-item.routine { border-left-style: dashed; border-left-color: var(--accent-amber); }
+.agenda-item.routine { border-left-style: dashed; border-left-color: var(--accent-amber); cursor: pointer; }
+.agenda-item.routine input[type="checkbox"] { accent-color: var(--accent-amber); width: 16px; height: 16px; flex-shrink: 0; }
 .agenda-item.overdue { border-left-color: var(--accent-rose); }
 .agenda-item.done { opacity: 0.6; }
 .agenda-item.done .agenda-title { text-decoration: line-through; }
@@ -315,17 +382,40 @@ body {
   .view-task { flex-direction: column; align-items: flex-start; gap: 14px; }
   .view-task .btn { width: 100%; }
 
-  .week-grid { grid-template-columns: repeat(7, minmax(90px, 1fr)); overflow-x: auto; }
+  .progress-dashboard { grid-template-columns: 1fr; }
 
   .schedule-toolbar { flex-direction: column; align-items: stretch; }
+  .view-toggle { display: flex; }
   .view-toggle .stat-pill { flex: 1; text-align: center; justify-content: center; }
-  .range-nav { justify-content: center; }
+  .range-nav { justify-content: center; flex-wrap: wrap; }
+
+  .routine-row { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .routine-actions { width: 100%; }
+  .routine-actions .btn { flex: 1; }
+
+  .week-grid {
+    grid-template-columns: repeat(7, minmax(120px, 1fr));
+    overflow-x: auto;
+    padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .chip {
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    white-space: normal;
+  }
+
+  .chip-routine span {
+    min-width: 0;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
 }
 
-@media (max-width: 560px) {
-  .week-grid {
-    display: flex;
-    flex-direction: column;
-  }
-  .day-column { min-height: unset; }
+@media (max-width: 420px) {
+  .routine-actions { flex-wrap: wrap; }
+  .routine-actions .btn { flex: 1 1 45%; }
 }

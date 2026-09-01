@@ -116,6 +116,16 @@ try:
 except sqlite3.OperationalError:
     pass
 
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS schedule_completions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    schedule_id INTEGER NOT NULL,
+    date TEXT NOT NULL,
+    user_id INTEGER,
+    UNIQUE(schedule_id, date)
+)
+""")
+
 connection.commit()
 connection.close()
 
